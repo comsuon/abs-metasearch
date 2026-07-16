@@ -1,18 +1,18 @@
 # Builder Image
 FROM golang:1.23 as builder
 
-WORKDIR /abs-tract
+WORKDIR /abs-metasearch
 COPY . .
 RUN go mod download
-RUN go build -v -o bin/abs-tract
+RUN go build -v -o bin/abs-metasearch
 
-# Ditribution Image
+# Distribution Image
 FROM alpine:latest
 
 RUN apk add --no-cache libc6-compat
 
-COPY --from=builder /abs-tract/bin/abs-tract /abs-tract
+COPY --from=builder /abs-metasearch/bin/abs-metasearch /abs-metasearch
 
 EXPOSE 5555
 
-ENTRYPOINT ["/abs-tract"]
+ENTRYPOINT ["/abs-metasearch"]

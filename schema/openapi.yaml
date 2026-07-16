@@ -16,45 +16,12 @@ security:
   - api_key: []
 
 paths:
-  /goodreads/search:
+  /metadata/search:
     get:
-      operationId: searchGoodreads
-      summary: Search for books using goodreads
-      description: Search for books using goodreads
+      operationId: searchMetadata
+      summary: Search for books using AI-powered search
+      description: Searches via SearXNG and structures results using an LLM
       parameters:
-        - $ref: "#/components/parameters/query"
-        - $ref: "#/components/parameters/author"
-      responses:
-        "200":
-          $ref: "#/components/responses/200"
-        "400":
-          $ref: "#/components/responses/400"
-        "401":
-          $ref: "#/components/responses/401"
-        "500":
-          $ref: "#/components/responses/500"
-
-  /kindle/{region}/search:
-    get:
-      operationId: searchKindle
-      summary: Search for books using kindle
-      description: Search for books using kindle
-      parameters:
-        - name: region
-          in: path
-          schema:
-            type: string
-            enum:
-              - "au"
-              - "ca"
-              - "de"
-              - "es"
-              - "fr"
-              - "in"
-              - "it"
-              - "jp"
-              - "uk"
-              - "us"
         - $ref: "#/components/parameters/query"
         - $ref: "#/components/parameters/author"
       responses:

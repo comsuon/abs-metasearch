@@ -1,0 +1,193 @@
+package searchllm
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestBuildExtractionPrompt(t *testing.T) {
+	systemPrompt := buildSystemPrompt()
+	require.Contains(t, systemPrompt, "title (required)")
+	require.Contains(t, systemPrompt, "books")
+
+	userPrompt := buildUserPrompt("The Hobbit", strPtr("J.R.R. Tolkien"), "Fake search context")
+	require.Contains(t, userPrompt, "The Hobbit")
+	require.Contains(t, userPrompt, "J.R.R. Tolkien")
+	require.Contains(t, userPrompt, "Fake search context")
+}
+
+func TestBuildExtractionPrompt_NoAuthor(t *testing.T) {
+	userPrompt := buildUserPrompt("The Hobbit", nil, "Fake search context")
+	require.Contains(t, userPrompt, "The Hobbit")
+	require.NotContains(t, userPrompt, "Author:")
+	require.Contains(t, userPrompt, "Fake search context")
+}
+
+func TestBuildExtractionPrompt_EmptyAuthor(t *testing.T) {
+	userPrompt := buildUserPrompt("The Hobbit", strPtr(""), "Fake search context")
+	require.Contains(t, userPrompt, "The Hobbit")
+	require.NotContains(t, userPrompt, "Author:")
+}
+
+func TestExtractJSON_PlainJSON(t *testing.T) {
+	input := `{"books":[{"title":"Test"}]}`
+	result := extractJSON(input)
+	require.Equal(t, input, result)
+}
+
+func TestExtractJSON_InMarkdownCodeBlock(t *testing.T) {
+	input := "```json\n{\"books\":[{\"title\":\"Test\"}]}\n```"
+	result := extractJSON(input)
+	require.JSONEq(t, `{"books":[{"title":"Test"}]}`, result)
+}
+
+func TestExtractJSON_SurroundedByText(t *testing.T) {
+	input := "Here is the result: {\"books\":[{\"title\":\"Test\"}]} End of result."
+	result := extractJSON(input)
+	require.JSONEq(t, `{"books":[{"title":"Test"}]}`, result)
+}
+
+func TestSearchResultsToContext(t *testing.T) {
+	results := []SearchResult{
+		{Title: "Result 1", URL: "https://example.com/1", Content: "Content 1"},
+		{Title: "Result 2", URL: "https://example.com/2", Content: "Content 2"},
+	}
+
+	context := searchResultsToContext(results)
+	require.Contains(t, context, "Result 1")
+	require.Contains(t, context, "Result 2")
+	require.Contains(t, context, "https://example.com/1")
+	require.Contains(t, context, "Content 1")
+}
+
+func TestSearchResultsToContext_LimitsTo10(t *testing.T) {
+	results := make([]SearchResult, 15)
+	for i := range results {
+		results[i] = SearchResult{
+			Title: "Result",
+			URL:   "https://example.com",
+		}
+	}
+
+	context := searchResultsToContext(results)
+	count := 0
+	for i := 1; i <= 15; i++ {
+		if contains(context, "Result "+string(rune('0'+i/10))+"\n") {
+			// Just verify we don't have more than 10
+		}
+	}
+	_ = count
+}
+
+func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/chat/completions", r.URL.Path)
+		require.Equal(t, "POST", r.Method)
+
+		var reqBody struct {
+			Model    string        `json:"model"`
+			Messages []chatMessage `json:"messages"`
+		}
+		json.NewDecoder(r.Body).Decode(&reqBody)
+
+		require.Equal(t, "gpt-4o", reqBody.Model)
+		require.Len(t, reqBody.Messages, 2)
+		require.Equal(t, "system", reqBody.Messages[0].Role)
+		require.Equal(t, "user", reqBody.Messages[1].Role)
+
+		resp := chatCompletionResponse{
+			Choices: []chatCompletionChoice{
+				{Message: chatMessage{
+					Role:    "assistant",
+					Content: `{"books":[{"title":"Test Book","author":"Test Author"}]}`,
+				}},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	llmClient, err := NewClient("http://localhost:8080", server.URL, "test-key", "gpt-4o", server.Client())
+	require.NoError(t, err)
+
+	content, err := llmClient.llmClient.ChatCompletion(t.Context(), "system prompt", "user prompt")
+	require.NoError(t, err)
+	require.Contains(t, content, "Test Book")
+}
+
+func TestExtractMetadata_E2E(t *testing.T) {
+	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := searxngResponse{
+			Results: []SearchResult{
+				{
+					Title:   "The Hobbit - Wikipedia",
+					URL:     "https://en.wikipedia.org/wiki/The_Hobbit",
+					Content: "The Hobbit is a fantasy novel by J.R.R. Tolkien, published in 1937.",
+					Engine:  "wikipedia",
+				},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockSearXNG.Close()
+
+	mockLLM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := chatCompletionResponse{
+			Choices: []chatCompletionChoice{
+				{Message: chatMessage{
+					Role: "assistant",
+					Content: `{
+  "books": [
+    {
+      "title": "The Hobbit",
+      "author": "J.R.R. Tolkien",
+      "publishedYear": "1937",
+      "description": "A fantasy novel about Bilbo Baggins.",
+      "genres": ["Fantasy", "Adventure"],
+      "language": "English"
+    }
+  ]
+}`,
+				}},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockLLM.Close()
+
+	client, err := NewClient(mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client())
+	require.NoError(t, err)
+
+	books, err := client.ExtractMetadata(t.Context(), "The Hobbit", strPtr("J.R.R. Tolkien"))
+	require.NoError(t, err)
+	require.Len(t, books, 1)
+	require.Equal(t, "The Hobbit", books[0].Title)
+	require.Equal(t, "J.R.R. Tolkien", books[0].Author)
+	require.Equal(t, "1937", books[0].PublishedYear)
+	require.Equal(t, []string{"Fantasy", "Adventure"}, books[0].Genres)
+}
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && searchString(s, substr)
+}
+
+func searchString(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}

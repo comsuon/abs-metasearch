@@ -1,10 +1,12 @@
 version: "3.8"
 services:
-  abs-tract:
-    image: arranhs/abs-tract
+  abs-metasearch:
+    image: abs-metasearch
     build:
       context: .
-    container_name: abs-tract
+    container_name: abs-metasearch
     ports:
       - "5555:5555"
     restart: unless-stopped
+    env_file:
+      - .env

@@ -22,11 +22,11 @@ tasks:
 
   build:
     cmds:
-      - go build -v -o bin/abs-tract
+      - go build -v -o bin/abs-metasearch
 
   build:docker:
     cmds:
-      - docker build . -t arranhs/abs-tract
+      - docker build . -t abs-metasearch
 
   run:
     cmds:
@@ -37,6 +37,7 @@ tasks:
     cmds:
       - |
         docker run --rm \
-          --name abs-tract \
+          --name abs-metasearch \
           -p 5555:5555 \
-          arranhs/abs-tract
+          --env-file .env \
+          abs-metasearch
