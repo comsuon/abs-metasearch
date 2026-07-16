@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"abs-metasearch/searchllm"
 
@@ -11,9 +11,9 @@ import (
 
 func searchMetadataBooks(ctx context.Context, title string, author *string) ([]BookMetadata, error) {
 	if searchllm.DefaultClient == nil {
-		return nil, fmt.Errorf(
-			"searchllm client not configured: set SEARXNG_URL, LLM_ENDPOINT, LLM_API_KEY, and LLM_MODEL env vars",
-		)
+	return nil, errors.New(
+		"searchllm client not configured: set SEARXNG_URL, LLM_ENDPOINT, LLM_API_KEY, and LLM_MODEL env vars",
+	)
 	}
 
 	llmBooks, err := searchllm.DefaultClient.ExtractMetadata(ctx, title, author)

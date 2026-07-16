@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,7 +88,7 @@ func (c *LLMHTTPClient) ChatCompletion(ctx context.Context, systemPrompt, userPr
 	}
 
 	if len(completion.Choices) == 0 {
-		return "", fmt.Errorf("LLM returned no choices")
+		return "", errors.New("LLM returned no choices")
 	}
 
 	content := completion.Choices[0].Message.Content
