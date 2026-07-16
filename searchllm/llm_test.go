@@ -67,6 +67,16 @@ func TestSearchResultsToContext(t *testing.T) {
 	require.Contains(t, searchContext, "Content 1")
 }
 
+func TestSearchResultsToContext_WithImage(t *testing.T) {
+	results := []SearchResult{
+		{Title: "Cover", URL: "https://example.com/book", ImgSrc: "https://example.com/cover.jpg"},
+	}
+
+	searchContext := searchResultsToContext(results)
+	require.Contains(t, searchContext, "Image: https://example.com/cover.jpg")
+	require.NotContains(t, searchContext, "Snippet:")
+}
+
 func TestSearchResultsToContext_LimitsTo10(t *testing.T) {
 	results := make([]SearchResult, 15)
 	for i := range results {
@@ -130,6 +140,12 @@ func TestExtractMetadata_E2E(t *testing.T) {
 					Content: "The Hobbit is a fantasy novel by J.R.R. Tolkien, published in 1937.",
 					Engine:  "wikipedia",
 				},
+				{
+					Title:  "The Hobbit Cover",
+					URL:    "https://example.com/hobbit",
+					ImgSrc: "https://example.com/hobbit-cover.jpg",
+					Engine: "google images",
+				},
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -149,6 +165,7 @@ func TestExtractMetadata_E2E(t *testing.T) {
       "author": "J.R.R. Tolkien",
       "publishedYear": "1937",
       "description": "A fantasy novel about Bilbo Baggins.",
+      "cover": "https://example.com/hobbit-cover.jpg",
       "genres": ["Fantasy", "Adventure"],
       "language": "English"
     }
@@ -172,6 +189,7 @@ func TestExtractMetadata_E2E(t *testing.T) {
 	require.Len(t, books, 1)
 	require.Equal(t, "The Hobbit", books[0].Title)
 	require.Equal(t, "J.R.R. Tolkien", books[0].Author)
+	require.Equal(t, "https://example.com/hobbit-cover.jpg", books[0].Cover)
 	require.Equal(t, "1937", books[0].PublishedYear)
 	require.Equal(t, []string{"Fantasy", "Adventure"}, books[0].Genres)
 }

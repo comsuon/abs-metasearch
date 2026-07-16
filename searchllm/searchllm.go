@@ -20,10 +20,12 @@ var defaultSearXNGParsedURL *url.URL = lo.Must(url.Parse(defaultSearXNGURL))
 var DefaultSearXNGURL = func() *url.URL { return utils.CloneURL(defaultSearXNGParsedURL) }
 
 type SearchResult struct {
-	Title   string `json:"title"`
-	URL     string `json:"url"`
-	Content string `json:"content"`
-	Engine  string `json:"engine"`
+	Title    string `json:"title"`
+	URL      string `json:"url"`
+	Content  string `json:"content"`
+	Engine   string `json:"engine"`
+	ImgSrc   string `json:"img_src"`
+	Category string `json:"category"`
 }
 
 type searxngResponse struct {

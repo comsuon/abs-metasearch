@@ -181,13 +181,30 @@ func extractFirstJSONObject(content string) string {
 
 func searchResultsToContext(results []SearchResult) string {
 	var sb strings.Builder
-	for i, r := range results {
-		if i >= 10 {
+	textIdx := 0
+	imgIdx := 0
+	const maxImages = 3
+	const maxResults = 10
+	for _, r := range results {
+		if r.ImgSrc != "" {
+			if imgIdx >= maxImages {
+				continue
+			}
+			_, _ = sb.WriteString(fmt.Sprintf(
+				"Result %d:\nTitle: %s\nURL: %s\nImage: %s\n\n",
+				textIdx+imgIdx+1, r.Title, r.URL, r.ImgSrc,
+			))
+			imgIdx++
+		} else {
+			_, _ = sb.WriteString(fmt.Sprintf(
+				"Result %d:\nTitle: %s\nURL: %s\nSnippet: %s\n\n",
+				textIdx+imgIdx+1, r.Title, r.URL, r.Content,
+			))
+			textIdx++
+		}
+		if textIdx+imgIdx >= maxResults {
 			break
 		}
-		_, _ = sb.WriteString(
-			fmt.Sprintf("Result %d:\nTitle: %s\nURL: %s\nSnippet: %s\n\n", i+1, r.Title, r.URL, r.Content),
-		)
 	}
 	return sb.String()
 }
@@ -195,7 +212,8 @@ func searchResultsToContext(results []SearchResult) string {
 func buildSystemPrompt() string {
 	return "" +
 		"You are a book metadata extraction assistant. " +
-		"Given search results about a book, extract structured metadata in JSON format.\n\n" +
+		"Given search results about a book (including image results), extract structured metadata in JSON format.\n\n" +
+		"Image results include cover URLs — use the first relevant image URL as the book cover.\n\n" +
 		"Output a JSON object with an array of \"books\". " +
 		"Each book should have these fields (only include fields you can confidently extract):\n\n" +
 		"- title (required): The book title without subtitle or series info\n" +
