@@ -27,12 +27,12 @@ jobs:
           go-version-file: go.mod
 
       - name: Setup Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup golangci-lint
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@v6
 
       - name: Run Lint
         run: task lint
@@ -55,7 +55,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Setup Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
