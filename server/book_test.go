@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"abs-metasearch/searchllm"
+
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,6 +1,7 @@
 package searchllm
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -76,14 +77,14 @@ func TestSearXNGClient_Search(t *testing.T) {
 	client, err := NewClient(server.URL, "http://localhost:8080/v1", "test-key", "gpt-4o", server.Client())
 	require.NoError(t, err)
 
-	results, err := client.searchClient.Search(t.Context(), "The Hobbit J.R.R. Tolkien book")
+	results, err := client.searchClient.Search(context.Background(), "The Hobbit J.R.R. Tolkien book")
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 	require.Equal(t, "The Hobbit - Wikipedia", results[0].Title)
 }
 
 func TestSearXNGClient_Search_HTTPError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "something went wrong"}`))
 	}))
@@ -92,6 +93,6 @@ func TestSearXNGClient_Search_HTTPError(t *testing.T) {
 	client, err := NewClient(server.URL, "http://localhost:8080/v1", "test-key", "gpt-4o", server.Client())
 	require.NoError(t, err)
 
-	_, err = client.searchClient.Search(t.Context(), "test query")
+	_, err = client.searchClient.Search(context.Background(), "test query")
 	require.Error(t, err)
 }

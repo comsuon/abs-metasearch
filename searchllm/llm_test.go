@@ -1,6 +1,7 @@
 package searchllm
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -58,11 +59,11 @@ func TestSearchResultsToContext(t *testing.T) {
 		{Title: "Result 2", URL: "https://example.com/2", Content: "Content 2"},
 	}
 
-	context := searchResultsToContext(results)
-	require.Contains(t, context, "Result 1")
-	require.Contains(t, context, "Result 2")
-	require.Contains(t, context, "https://example.com/1")
-	require.Contains(t, context, "Content 1")
+	searchContext := searchResultsToContext(results)
+	require.Contains(t, searchContext, "Result 1")
+	require.Contains(t, searchContext, "Result 2")
+	require.Contains(t, searchContext, "https://example.com/1")
+	require.Contains(t, searchContext, "Content 1")
 }
 
 func TestSearchResultsToContext_LimitsTo10(t *testing.T) {
@@ -74,8 +75,8 @@ func TestSearchResultsToContext_LimitsTo10(t *testing.T) {
 		}
 	}
 
-	context := searchResultsToContext(results)
-	require.NotContains(t, context, "Result 11")
+	searchContext := searchResultsToContext(results)
+	require.NotContains(t, searchContext, "Result 11")
 }
 
 func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
@@ -111,7 +112,7 @@ func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
 	llmClient, err := NewClient("http://localhost:8080", server.URL, "test-key", "gpt-4o", server.Client())
 	require.NoError(t, err)
 
-	content, err := llmClient.llmClient.ChatCompletion(t.Context(), "system prompt", "user prompt")
+	content, err := llmClient.llmClient.ChatCompletion(context.Background(), "system prompt", "user prompt")
 	require.NoError(t, err)
 	require.Contains(t, content, "Test Book")
 }
@@ -161,7 +162,7 @@ func TestExtractMetadata_E2E(t *testing.T) {
 	client, err := NewClient(mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client())
 	require.NoError(t, err)
 
-	books, err := client.ExtractMetadata(t.Context(), "The Hobbit", strPtr("J.R.R. Tolkien"))
+	books, err := client.ExtractMetadata(context.Background(), "The Hobbit", strPtr("J.R.R. Tolkien"))
 	require.NoError(t, err)
 	require.Len(t, books, 1)
 	require.Equal(t, "The Hobbit", books[0].Title)

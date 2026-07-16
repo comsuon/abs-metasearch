@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"abs-metasearch/utils"
+
 	"github.com/samber/lo"
 )
 

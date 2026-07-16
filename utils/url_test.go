@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"abs-metasearch/utils"
+
 	"github.com/stretchr/testify/require"
 )
 
