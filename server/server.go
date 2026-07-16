@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 
 	"github.com/samber/lo"
 )
@@ -16,6 +17,7 @@ func (*server) SearchMetadata(
 ) (SearchMetadataResponseObject, error) {
 	books, err := searchMetadataBooks(ctx, request.Params.Query, request.Params.Author)
 	if err != nil {
+		log.Printf("SearchMetadata error: %v", err)
 		return SearchMetadata500JSONResponse{N500JSONResponse{Error: lo.ToPtr(err.Error())}}, nil
 	}
 

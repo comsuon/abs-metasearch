@@ -20,7 +20,7 @@ const (
 	envLLMTimeout     = "LLM_TIMEOUT"
 	envSearXNGTimeout = "SEARXNG_TIMEOUT"
 
-	defaultTimeout = 60 * time.Second
+	defaultTimeout = 120 * time.Second
 )
 
 var DefaultClient *Client
