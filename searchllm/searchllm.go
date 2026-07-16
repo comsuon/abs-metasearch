@@ -41,6 +41,7 @@ func (c *SearXNGClient) Search(ctx context.Context, query string) ([]SearchResul
 	queryParams := url.Values{}
 	queryParams.Add("format", "json")
 	queryParams.Add("q", query)
+	queryParams.Add("categories", "general,images")
 
 	requestURL := c.URL()
 	requestURL = requestURL.JoinPath("search")

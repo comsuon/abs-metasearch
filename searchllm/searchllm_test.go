@@ -58,6 +58,7 @@ func TestSearXNGClient_Search(t *testing.T) {
 		assert.Equal(t, "/search", r.URL.Path)
 		assert.Equal(t, "json", r.URL.Query().Get("format"))
 		assert.Equal(t, "The Hobbit J.R.R. Tolkien book", r.URL.Query().Get("q"))
+		assert.Equal(t, "general,images", r.URL.Query().Get("categories"))
 
 		resp := searxngResponse{
 			Results: []SearchResult{

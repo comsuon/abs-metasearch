@@ -223,11 +223,18 @@ func buildSystemPrompt() string {
 		"      \"title\": \"The Hobbit\",\n" +
 		"      \"subtitle\": \"There and Back Again\",\n" +
 		"      \"author\": \"J.R.R. Tolkien\",\n" +
+		"      \"narrator\": \"Andy Serkis\",\n" +
+		"      \"publisher\": \"HarperCollins\",\n" +
 		"      \"publishedYear\": \"1937\",\n" +
 		"      \"description\": \"Bilbo Baggins is a hobbit who enjoys a comfortable...\",\n" +
+		"      \"cover\": \"https://example.com/cover.jpg\",\n" +
+		"      \"isbn\": \"9780547928227\",\n" +
 		"      \"genres\": [\"Fantasy\", \"Adventure\", \"Classic\"],\n" +
+		"      \"tags\": [\"middle-earth\", \"quest\"],\n" +
 		"      \"series\": \"Middle-earth\",\n" +
-		"      \"language\": \"English\"\n" +
+		"      \"sequence\": \"1\",\n" +
+		"      \"language\": \"English\",\n" +
+		"      \"duration\": 0\n" +
 		"    }\n" +
 		"  ]\n" +
 		"}"
