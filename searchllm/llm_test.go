@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -109,7 +110,9 @@ func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
 	}))
 	defer server.Close()
 
-	llmClient, err := NewClient("http://localhost:8080", server.URL, "test-key", "gpt-4o", server.Client())
+	llmClient, err := NewClient(
+		"http://localhost:8080", server.URL, "test-key", "gpt-4o", server.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	content, err := llmClient.llmClient.ChatCompletion(context.Background(), "system prompt", "user prompt")
@@ -159,7 +162,9 @@ func TestExtractMetadata_E2E(t *testing.T) {
 	}))
 	defer mockLLM.Close()
 
-	client, err := NewClient(mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client())
+	client, err := NewClient(
+		mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	books, err := client.ExtractMetadata(context.Background(), "The Hobbit", strPtr("J.R.R. Tolkien"))

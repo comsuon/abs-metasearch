@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,7 +75,9 @@ func TestSearXNGClient_Search(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL, "http://localhost:8080/v1", "test-key", "gpt-4o", server.Client())
+	client, err := NewClient(
+		server.URL, "http://localhost:8080/v1", "test-key", "gpt-4o", server.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	results, err := client.searchClient.Search(context.Background(), "The Hobbit J.R.R. Tolkien book")
@@ -90,7 +93,9 @@ func TestSearXNGClient_Search_HTTPError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewClient(server.URL, "http://localhost:8080/v1", "test-key", "gpt-4o", server.Client())
+	client, err := NewClient(
+		server.URL, "http://localhost:8080/v1", "test-key", "gpt-4o", server.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	_, err = client.searchClient.Search(context.Background(), "test query")

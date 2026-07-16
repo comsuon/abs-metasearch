@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"abs-metasearch/searchllm"
 
@@ -69,7 +70,9 @@ func TestSearchMetadata_Handler(t *testing.T) {
 	mockSearXNG, mockLLM, cleanup := startMockServers(t)
 	defer cleanup()
 
-	client, err := searchllm.NewClient(mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client())
+	client, err := searchllm.NewClient(
+		mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	origClient := searchllm.DefaultClient
@@ -139,7 +142,9 @@ func TestSearchMetadata_Handler_NoAuthor(t *testing.T) {
 	mockSearXNG, mockLLM, cleanup := startMockServers(t)
 	defer cleanup()
 
-	client, err := searchllm.NewClient(mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client())
+	client, err := searchllm.NewClient(
+		mockSearXNG.URL, mockLLM.URL, "test-key", "gpt-4o", mockSearXNG.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	origClient := searchllm.DefaultClient
@@ -167,7 +172,9 @@ func TestSearchMetadata_Handler_EmptyResults(t *testing.T) {
 	}))
 	defer mockSearXNG.Close()
 
-	client, err := searchllm.NewClient(mockSearXNG.URL, "http://unused/v1", "test-key", "gpt-4o", mockSearXNG.Client())
+	client, err := searchllm.NewClient(
+		mockSearXNG.URL, "http://unused/v1", "test-key", "gpt-4o", mockSearXNG.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	origClient := searchllm.DefaultClient
@@ -204,7 +211,9 @@ func TestSearchMetadata_Handler_SearchError(t *testing.T) {
 	}))
 	defer mockSearXNG.Close()
 
-	client, err := searchllm.NewClient(mockSearXNG.URL, "http://unused/v1", "test-key", "gpt-4o", mockSearXNG.Client())
+	client, err := searchllm.NewClient(
+		mockSearXNG.URL, "http://unused/v1", "test-key", "gpt-4o", mockSearXNG.Client(), 30*time.Second,
+	)
 	require.NoError(t, err)
 
 	origClient := searchllm.DefaultClient

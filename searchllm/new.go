@@ -5,16 +5,22 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"abs-metasearch/utils"
 )
 
 const (
-	envSearXNGURL  = "SEARXNG_URL"
-	envLLMEndpoint = "LLM_ENDPOINT"
-	envLLMAPIKey   = "LLM_API_KEY"
-	envLLMModel    = "LLM_MODEL"
+	envSearXNGURL     = "SEARXNG_URL"
+	envLLMEndpoint    = "LLM_ENDPOINT"
+	envLLMAPIKey      = "LLM_API_KEY"
+	envLLMModel       = "LLM_MODEL"
+	envLLMTimeout     = "LLM_TIMEOUT"
+	envSearXNGTimeout = "SEARXNG_TIMEOUT"
+
+	defaultTimeout = 60 * time.Second
 )
 
 var DefaultClient *Client
@@ -49,10 +55,32 @@ func NewClientFromEnv() (*Client, error) {
 		llmModel = "gpt-4o"
 	}
 
-	return NewClient(searxngURL, llmEndpoint, llmAPIKey, llmModel, http.DefaultClient)
+	httpClient := &http.Client{
+		Timeout: defaultTimeout,
+	}
+	httpClient.Timeout = parseTimeout(envSearXNGTimeout, httpClient.Timeout)
+	llmTimeout := parseTimeout(envLLMTimeout, httpClient.Timeout)
+
+	return NewClient(searxngURL, llmEndpoint, llmAPIKey, llmModel, httpClient, llmTimeout)
 }
 
-func NewClient(searxngURL, llmEndpoint, llmAPIKey, llmModel string, httpClient *http.Client) (*Client, error) {
+func parseTimeout(envVar string, fallback time.Duration) time.Duration {
+	val := os.Getenv(envVar)
+	if val == "" {
+		return fallback
+	}
+	secs, err := strconv.Atoi(val)
+	if err != nil || secs <= 0 {
+		return fallback
+	}
+	return time.Duration(secs) * time.Second
+}
+
+func NewClient(
+	searxngURL, llmEndpoint, llmAPIKey, llmModel string,
+	httpClient *http.Client,
+	llmTimeout time.Duration,
+) (*Client, error) {
 	parsedSearXNGURL, err := url.Parse(strings.TrimRight(searxngURL, "/"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid SearXNG URL: %w", err)
@@ -68,8 +96,12 @@ func NewClient(searxngURL, llmEndpoint, llmAPIKey, llmModel string, httpClient *
 		return nil, fmt.Errorf("invalid LLM endpoint: %w", err)
 	}
 
+	llmHTTPClient := &http.Client{
+		Timeout: llmTimeout,
+	}
+
 	llmClient := &LLMHTTPClient{
-		client:   httpClient,
+		client:   llmHTTPClient,
 		endpoint: parsedLLMEndpoint,
 		apiKey:   llmAPIKey,
 		model:    llmModel,
