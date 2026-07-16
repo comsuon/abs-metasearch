@@ -59,6 +59,17 @@ go run .
 
 ## Docker
 
+### Pre-built image
+
+```bash
+docker run -d \
+    --name abs-metasearch \
+    -p 5555:5555 \
+    --env-file .env \
+    --restart unless-stopped \
+    ghcr.io/comsuon/abs-metasearch:develop
+```
+
 ### Build locally
 
 ```bash
