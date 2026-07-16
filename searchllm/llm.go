@@ -130,19 +130,28 @@ func (c *Client) ExtractMetadata(ctx context.Context, title string, author *stri
 
 func extractJSON(content string) string {
 	content = strings.TrimSpace(content)
+	content = stripMarkdownCodeBlock(content)
+	return extractFirstJSONObject(content)
+}
 
+func stripMarkdownCodeBlock(content string) string {
 	if start := strings.Index(content, "```json"); start != -1 {
 		content = content[start+7:]
 		if end := strings.Index(content, "```"); end != -1 {
 			content = content[:end]
 		}
-	} else if start := strings.Index(content, "```"); start != -1 {
+		return content
+	}
+	if start := strings.Index(content, "```"); start != -1 {
 		content = content[start+3:]
 		if end := strings.Index(content, "```"); end != -1 {
 			content = content[:end]
 		}
 	}
+	return content
+}
 
+func extractFirstJSONObject(content string) string {
 	start := strings.Index(content, "{")
 	if start == -1 {
 		return content
@@ -158,16 +167,14 @@ func extractJSON(content string) string {
 			depth--
 			if depth == 0 {
 				end = i + 1
-				goto done
+				i = len(content)
 			}
 		}
 	}
-done:
 
 	if end > start && end <= len(content) {
 		return content[start:end]
 	}
-
 	return content
 }
 
@@ -177,62 +184,63 @@ func searchResultsToContext(results []SearchResult) string {
 		if i >= 10 {
 			break
 		}
-		sb.WriteString(fmt.Sprintf("Result %d:\nTitle: %s\nURL: %s\nSnippet: %s\n\n", i+1, r.Title, r.URL, r.Content))
+		_, _ = sb.WriteString(
+			fmt.Sprintf("Result %d:\nTitle: %s\nURL: %s\nSnippet: %s\n\n", i+1, r.Title, r.URL, r.Content),
+		)
 	}
 	return sb.String()
 }
 
 func buildSystemPrompt() string {
-	return `You are a book metadata extraction assistant. Given search results about a book, extract structured metadata in JSON format.
-
-Output a JSON object with an array of "books". Each book should have these fields (only include fields you can confidently extract):
-
-- title (required): The book title without subtitle or series info
-- subtitle: The subtitle if present
-- author: The author name(s)
-- narrator: The narrator name(s) if it's an audiobook
-- publisher: The publisher name
-- publishedYear: The year of publication as a string (e.g. "2023")
-- description: A brief description/summary of the book
-- cover: URL to the cover image
-- isbn: ISBN-13 or ISBN-10
-- asin: Amazon ASIN
-- genres: Array of genre strings (e.g. ["Fantasy", "Fiction"])
-- tags: Array of tag strings
-- series: The series name
-- sequence: The book's position in the series as a string (e.g. "2")
-- language: The language the book is written in
-- duration: Duration in seconds (for audiobooks)
-
-If you find multiple matching books, include them all in the "books" array, ordered by relevance.
-If you cannot find any matching book, return an empty "books" array.
-
-Example response:
-{
-  "books": [
-    {
-      "title": "The Hobbit",
-      "subtitle": "There and Back Again",
-      "author": "J.R.R. Tolkien",
-      "publishedYear": "1937",
-      "description": "Bilbo Baggins is a hobbit who enjoys a comfortable...",
-      "genres": ["Fantasy", "Adventure", "Classic"],
-      "series": "Middle-earth",
-      "language": "English"
-    }
-  ]
-}`
+	return "" +
+		"You are a book metadata extraction assistant. " +
+		"Given search results about a book, extract structured metadata in JSON format.\n\n" +
+		"Output a JSON object with an array of \"books\". " +
+		"Each book should have these fields (only include fields you can confidently extract):\n\n" +
+		"- title (required): The book title without subtitle or series info\n" +
+		"- subtitle: The subtitle if present\n" +
+		"- author: The author name(s)\n" +
+		"- narrator: The narrator name(s) if it's an audiobook\n" +
+		"- publisher: The publisher name\n" +
+		"- publishedYear: The year of publication as a string (e.g. \"2023\")\n" +
+		"- description: A brief description/summary of the book\n" +
+		"- cover: URL to the cover image\n" +
+		"- isbn: ISBN-13 or ISBN-10\n" +
+		"- asin: Amazon ASIN\n" +
+		"- genres: Array of genre strings (e.g. [\"Fantasy\", \"Fiction\"])\n" +
+		"- tags: Array of tag strings\n" +
+		"- series: The series name\n" +
+		"- sequence: The book's position in the series as a string (e.g. \"2\")\n" +
+		"- language: The language the book is written in\n" +
+		"- duration: Duration in seconds (for audiobooks)\n\n" +
+		"If you find multiple matching books, include them all in the \"books\" array, ordered by relevance.\n" +
+		"If you cannot find any matching book, return an empty \"books\" array.\n\n" +
+		"Example response:\n" +
+		"{\n" +
+		"  \"books\": [\n" +
+		"    {\n" +
+		"      \"title\": \"The Hobbit\",\n" +
+		"      \"subtitle\": \"There and Back Again\",\n" +
+		"      \"author\": \"J.R.R. Tolkien\",\n" +
+		"      \"publishedYear\": \"1937\",\n" +
+		"      \"description\": \"Bilbo Baggins is a hobbit who enjoys a comfortable...\",\n" +
+		"      \"genres\": [\"Fantasy\", \"Adventure\", \"Classic\"],\n" +
+		"      \"series\": \"Middle-earth\",\n" +
+		"      \"language\": \"English\"\n" +
+		"    }\n" +
+		"  ]\n" +
+		"}"
 }
 
 func buildUserPrompt(title string, author *string, resultsContext string) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Find metadata for the book: %s\n", title))
+	_, _ = sb.WriteString(fmt.Sprintf("Find metadata for the book: %s\n", title))
 	if author != nil && *author != "" {
-		sb.WriteString(fmt.Sprintf("Author: %s\n", *author))
+		_, _ = sb.WriteString(fmt.Sprintf("Author: %s\n", *author))
 	}
-	sb.WriteString("\nSearch results:\n")
-	sb.WriteString(resultsContext)
-	sb.WriteString("\nExtract the book metadata as JSON.")
+	_, _ = sb.WriteString("\nSearch results:\n")
+	_, _ = sb.WriteString(resultsContext)
+	_, _ = sb.WriteString("\nExtract the book metadata as JSON.")
 	return sb.String()
 }
 

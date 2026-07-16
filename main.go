@@ -40,6 +40,10 @@ func main() {
 }
 
 func loadEnvFile(path string) error {
+	return parseEnvFile(path, os.Setenv)
+}
+
+func parseEnvFile(path string, setter func(string, string) error) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -49,25 +53,32 @@ func loadEnvFile(path string) error {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		value := strings.TrimSpace(parts[1])
-		if (strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`)) ||
-			(strings.HasPrefix(value, `'`) && strings.HasSuffix(value, `'`)) {
-			value = value[1 : len(value)-1]
-		}
-		if os.Getenv(key) == "" {
-			os.Setenv(key, value)
+		key, value, ok := parseEnvLine(line)
+		if ok && os.Getenv(key) == "" {
+			if err := setter(key, value); err != nil {
+				return err
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("error reading .env file: %w", err)
 	}
 	return nil
+}
+
+func parseEnvLine(line string) (key, value string, ok bool) {
+	if line == "" || strings.HasPrefix(line, "#") {
+		return "", "", false
+	}
+	parts := strings.SplitN(line, "=", 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	key = strings.TrimSpace(parts[0])
+	value = strings.TrimSpace(parts[1])
+	if (strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`)) ||
+		(strings.HasPrefix(value, `'`) && strings.HasSuffix(value, `'`)) {
+		value = value[1 : len(value)-1]
+	}
+	return key, value, true
 }

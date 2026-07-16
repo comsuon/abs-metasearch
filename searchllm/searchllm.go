@@ -14,7 +14,9 @@ import (
 
 const defaultSearXNGURL = "http://localhost:8080"
 
-var defaultSearXNGParsedURL = lo.Must(url.Parse(defaultSearXNGURL))
+var defaultSearXNGParsedURL *url.URL = lo.Must(url.Parse(defaultSearXNGURL))
+
+var DefaultSearXNGURL = func() *url.URL { return utils.CloneURL(defaultSearXNGParsedURL) }
 
 type SearchResult struct {
 	Title   string `json:"title"`
@@ -28,8 +30,8 @@ type searxngResponse struct {
 }
 
 type SearXNGClient struct {
-	client      *http.Client
-	searxngURL  *url.URL
+	client     *http.Client
+	searxngURL *url.URL
 }
 
 func (c *SearXNGClient) URL() *url.URL { return utils.CloneURL(c.searxngURL) }

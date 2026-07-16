@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func startMockServers(t *testing.T) (*httptest.Server, *httptest.Server, func()) {
+func startMockServers(t *testing.T) (searXNG, llm *httptest.Server, cleanup func()) {
 	t.Helper()
 
-	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{
+	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		resp := map[string]any{
 			"results": []map[string]string{
 				{
 					"title":   "The Hobbit - Wikipedia",
@@ -26,25 +26,37 @@ func startMockServers(t *testing.T) (*httptest.Server, *httptest.Server, func())
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 
-	mockLLM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{
-			"choices": []map[string]interface{}{
+	mockLLM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		content := `{
+  "books": [
+    {
+      "title": "The Hobbit",
+      "author": "J.R.R. Tolkien",
+      "publishedYear": "1937",
+      "description": "A fantasy novel.",
+      "genres": ["Fantasy", "Adventure"],
+      "language": "English"
+    }
+  ]
+}`
+		resp := map[string]any{
+			"choices": []map[string]any{
 				{
 					"message": map[string]string{
 						"role":    "assistant",
-						"content": `{"books":[{"title":"The Hobbit","author":"J.R.R. Tolkien","publishedYear":"1937","description":"A fantasy novel.","genres":["Fantasy","Adventure"],"language":"English"}]}`,
+						"content": content,
 					},
 				},
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 
-	cleanup := func() {
+	cleanup = func() {
 		mockSearXNG.Close()
 		mockLLM.Close()
 	}
@@ -147,10 +159,10 @@ func TestSearchMetadata_Handler_NoAuthor(t *testing.T) {
 }
 
 func TestSearchMetadata_Handler_EmptyResults(t *testing.T) {
-	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := map[string]interface{}{"results": []interface{}{}}
+	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		resp := map[string]any{"results": []any{}}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer mockSearXNG.Close()
 
@@ -181,13 +193,13 @@ func TestSearchMetadata_Handler_EmptyResults(t *testing.T) {
 	}
 	err = json.Unmarshal(body, &result)
 	require.NoError(t, err)
-	require.Len(t, result.Matches, 0)
+	require.Empty(t, result.Matches)
 }
 
 func TestSearchMetadata_Handler_SearchError(t *testing.T) {
-	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		_, _ = w.Write([]byte("internal error"))
 	}))
 	defer mockSearXNG.Close()
 

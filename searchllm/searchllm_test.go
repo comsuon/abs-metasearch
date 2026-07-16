@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,14 +48,14 @@ func TestParseSearXNGResults_Empty(t *testing.T) {
 	var parsed searxngResponse
 	err = json.Unmarshal(data, &parsed)
 	require.NoError(t, err)
-	require.Len(t, parsed.Results, 0)
+	require.Empty(t, parsed.Results)
 }
 
 func TestSearXNGClient_Search(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/search", r.URL.Path)
-		require.Equal(t, "json", r.URL.Query().Get("format"))
-		require.Equal(t, "The Hobbit J.R.R. Tolkien book", r.URL.Query().Get("q"))
+		assert.Equal(t, "/search", r.URL.Path)
+		assert.Equal(t, "json", r.URL.Query().Get("format"))
+		assert.Equal(t, "The Hobbit J.R.R. Tolkien book", r.URL.Query().Get("q"))
 
 		resp := searxngResponse{
 			Results: []SearchResult{
@@ -68,7 +69,7 @@ func TestSearXNGClient_Search(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -84,7 +85,7 @@ func TestSearXNGClient_Search(t *testing.T) {
 func TestSearXNGClient_Search_HTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "something went wrong"}`))
+		_, _ = w.Write([]byte(`{"error": "something went wrong"}`))
 	}))
 	defer server.Close()
 

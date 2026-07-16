@@ -79,7 +79,7 @@ func TestParseLLMResponse_EmptyArray(t *testing.T) {
 
 	books, err := parseLLMResponse(response)
 	require.NoError(t, err)
-	require.Len(t, books, 0)
+	require.Empty(t, books)
 }
 
 func TestParseLLMResponse_FiltersInvalidBooks(t *testing.T) {

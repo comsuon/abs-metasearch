@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,30 +75,24 @@ func TestSearchResultsToContext_LimitsTo10(t *testing.T) {
 	}
 
 	context := searchResultsToContext(results)
-	count := 0
-	for i := 1; i <= 15; i++ {
-		if contains(context, "Result "+string(rune('0'+i/10))+"\n") {
-			// Just verify we don't have more than 10
-		}
-	}
-	_ = count
+	require.NotContains(t, context, "Result 11")
 }
 
 func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "/chat/completions", r.URL.Path)
-		require.Equal(t, "POST", r.Method)
+		assert.Equal(t, "/chat/completions", r.URL.Path)
+		assert.Equal(t, "POST", r.Method)
 
 		var reqBody struct {
 			Model    string        `json:"model"`
 			Messages []chatMessage `json:"messages"`
 		}
-		json.NewDecoder(r.Body).Decode(&reqBody)
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
 
-		require.Equal(t, "gpt-4o", reqBody.Model)
-		require.Len(t, reqBody.Messages, 2)
-		require.Equal(t, "system", reqBody.Messages[0].Role)
-		require.Equal(t, "user", reqBody.Messages[1].Role)
+		assert.Equal(t, "gpt-4o", reqBody.Model)
+		assert.Len(t, reqBody.Messages, 2)
+		assert.Equal(t, "system", reqBody.Messages[0].Role)
+		assert.Equal(t, "user", reqBody.Messages[1].Role)
 
 		resp := chatCompletionResponse{
 			Choices: []chatCompletionChoice{
@@ -109,7 +104,7 @@ func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -122,7 +117,7 @@ func TestLLMHTTPClient_ChatCompletion(t *testing.T) {
 }
 
 func TestExtractMetadata_E2E(t *testing.T) {
-	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockSearXNG := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		resp := searxngResponse{
 			Results: []SearchResult{
 				{
@@ -134,11 +129,11 @@ func TestExtractMetadata_E2E(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer mockSearXNG.Close()
 
-	mockLLM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockLLM := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		resp := chatCompletionResponse{
 			Choices: []chatCompletionChoice{
 				{Message: chatMessage{
@@ -159,7 +154,7 @@ func TestExtractMetadata_E2E(t *testing.T) {
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer mockLLM.Close()
 
@@ -177,17 +172,4 @@ func TestExtractMetadata_E2E(t *testing.T) {
 
 func strPtr(s string) *string {
 	return &s
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
